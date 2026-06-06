@@ -74,6 +74,7 @@ function showScreen(screenId) {
 async function autoDetectHole(imageSource) {
     return new Promise((resolve) => {
         const img = new Image();
+        tplImg.crossOrigin = "Anonymous";
         img.src = imageSource;
         img.onload = () => {
             const tempCanvas = document.createElement('canvas');
@@ -261,6 +262,7 @@ function renderPoster() {
 
         // 3. Draw Template PNG on top (Creating the frame effect)
         const tplImg = new Image();
+        tplImg.crossOrigin = "Anonymous";
         tplImg.src = currentTemplate.src;
         tplImg.onload = () => {
             // Draw using the dynamic width and height
