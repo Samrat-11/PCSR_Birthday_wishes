@@ -70,7 +70,7 @@ function showScreen(screenId) {
     target.classList.add('active');
 }
 
-// --- AUTO DETECT HOLE ALGORITHM ---
+// --- AUTO DETECT HOLE ALGORITHM (WITH EDGE BUFFER FIX) ---
 async function autoDetectHole(imageSource) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -91,8 +91,11 @@ async function autoDetectHole(imageSource) {
             let maxX = 0, maxY = 0;
             let foundHole = false;
 
-            for (let y = 0; y < tempCanvas.height; y++) {
-                for (let x = 0; x < tempCanvas.width; x++) {
+            // THE FIX: 50-pixel edge buffer to ignore phantom transparent pixels on the borders
+            const edgeBuffer = 50; 
+
+            for (let y = edgeBuffer; y < tempCanvas.height - edgeBuffer; y++) {
+                for (let x = edgeBuffer; x < tempCanvas.width - edgeBuffer; x++) {
                     const alphaIndex = (y * tempCanvas.width + x) * 4 + 3;
                     // If pixel is mostly transparent
                     if (data[alphaIndex] < 10) { 
@@ -159,7 +162,7 @@ function loadTemplates() {
     });
 }
 
-// "SMART" USE DESIGN BUTTON (Scans on click)
+// "SMART" USE DESIGN BUTTON (Scans safely on click)
 document.getElementById('btn-use-design').onclick = async () => {
     const btn = document.getElementById('btn-use-design');
 
