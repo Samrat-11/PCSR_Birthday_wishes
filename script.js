@@ -1,15 +1,15 @@
 // --- CONFIGURATION ---
 // You must have 3 transparent PNGs inside the "templates/" folder.
-// The imgRect acts as a fallback, but will now be automatically overwritten by autoDetectHole!
+// The imgRect dictates exactly where the user's cropped photo will be drawn underneath the PNG template.
 const TEMPLATES = [
     {
         id: 'tpl1',
         src: 'templates/template1.png', 
-        thumb: 'templates/template1.png', 
-        width: 1080,   
-        height: 1080,  
-        imgRect: { x: 61.5, y: 520, w: 370, h: 370 }, // Fallback
-        shape: 'circle', 
+        thumb: 'templates/template1.png', // Or a low-res version for slider
+        width: 1080,   // Dynamic width
+        height: 1080,  // Dynamic height
+        imgRect: { x: 61.5, y: 520, w: 370, h: 370 }, // Adjusted up, left, and slightly smaller
+        shape: 'circle', // Added shape to apply circular mask
         text: {
             name: { x: 540, y: 1000, font: 'bold 45px Inter', color: '#ffffff', align: 'center' },
             desig: { x: 540, y: 1050, font: '30px Inter', color: '#f9d988', align: 'center' }
@@ -19,10 +19,10 @@ const TEMPLATES = [
         id: 'tpl2',
         src: 'templates/template2.png',
         thumb: 'templates/template2.png',
-        width: 1080,   
-        height: 1350,  
-        imgRect: { x: 61.5, y: 520, w: 370, h: 370 }, // Fallback
-        shape: 'circle', 
+        width: 1080,   // Dynamic width
+        height: 1350,  // Set to 1350 for the taller portrait template
+        imgRect: { x: 674.5, y: 1614.5, w: 461, h: 413 }, // You may need to tweak these X/Y coords based on the new height
+        shape: 'circle', // Added shape to apply circular mask
         text: {
             name: { x: 300, y: 950, font: 'bold 50px Playfair Display', color: '#ffffff', align: 'center' },
             desig: { x: 300, y: 1000, font: '25px Inter', color: '#d59b37', align: 'center' }
@@ -32,10 +32,10 @@ const TEMPLATES = [
         id: 'tpl3',
         src: 'templates/template3.png',
         thumb: 'templates/template3.png',
-        width: 1080,   
-        height: 1080,  
-        imgRect: { x: 0, y: 0, w: 1080, h: 1080 }, // Fallback, full screen
-        shape: 'rectangle', 
+        width: 1080,   // Dynamic width
+        height: 1080,  // Dynamic height
+        imgRect: { x: 0, y: 0, w: 1080, h: 1080 }, // Full background photo layout
+        shape: 'rectangle', // Standard rectangle shape, no clipping mask applied
         text: {
             name: { x: 100, y: 900, font: 'bold 60px Inter', color: '#ffffff', align: 'left' },
             desig: { x: 100, y: 960, font: '35px Inter', color: '#f9d988', align: 'left' }
@@ -70,107 +70,18 @@ function showScreen(screenId) {
     target.classList.add('active');
 }
 
-// --- AUTO DETECT HOLE ALGORITHM (WITH EDGE BUFFER FIX) ---
-// --- AUTO DETECT HOLE ALGORITHM (DIAGNOSTIC MODE) ---
-async function autoDetectHole(imageSource) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous"; 
-        
-        img.onload = () => {
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCanvas.width = img.width;
-            tempCanvas.height = img.height;
-            
-            tempCtx.drawImage(img, 0, 0);
-            
-            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            const data = imageData.data;
-
-            let minX = tempCanvas.width, minY = tempCanvas.height;
-            let maxX = 0, maxY = 0;
-            let foundHole = false;
-
-            const edgeBuffer = 50; 
-
-            for (let y = edgeBuffer; y < tempCanvas.height - edgeBuffer; y++) {
-                for (let x = edgeBuffer; x < tempCanvas.width - edgeBuffer; x++) {
-                    const alphaIndex = (y * tempCanvas.width + x) * 4 + 3;
-                    
-                    // Increased tolerance from 10 to 50 to ignore semi-transparent shadows
-                    if (data[alphaIndex] < 50) { 
-                        if (x < minX) minX = x;
-                        if (x > maxX) maxX = x;
-                        if (y < minY) minY = y;
-                        if (y > maxY) maxY = y;
-                        foundHole = true;
-                    }
-                }
-            }
-
-            if (foundHole) {
-                const rawWidth = maxX - minX;
-                const rawHeight = maxY - minY;
-                const maxDim = Math.max(rawWidth, rawHeight);
-                resolve({ x: minX, y: minY, w: maxDim, h: maxDim });
-            } else {
-                resolve(null); 
-            }
-        };
-
-        img.onerror = () => {
-            alert("❌ SCANNER ERROR: Browser blocked the scan. (CORS issue)");
-            resolve(null);
-        };
-
-        // CACHE-BUSTER: Forces GitHub to fetch a fresh, unblocked image
-        img.src = imageSource + "?nocache=" + new Date().getTime();
-    });
-}
-
-// "SMART" USE DESIGN BUTTON (With Alerts)
-document.getElementById('btn-use-design').onclick = async () => {
-    const btn = document.getElementById('btn-use-design');
-
-    if (currentTemplate.shape === 'circle') {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'SCANNING... <i class="fa-solid fa-spinner fa-spin"></i>'; 
-
-        const coords = await autoDetectHole(currentTemplate.src);
-        
-        if (coords) {
-            currentTemplate.imgRect = coords; 
-            // This popup will tell us exactly what is happening!
-            alert(`✅ SUCCESS!\nThe Scanner found the hole at:\n\nX: ${coords.x}\nY: ${coords.y}\nWidth: ${coords.w}`);
-        } else {
-            alert("⚠️ SCANNER FAILED: Falling back to manual coordinates.");
-        }
-
-        btn.innerHTML = originalText;
-    }
-
-    showScreen('screen-upload');
-};
-
 // --- TEMPLATE SELECTION ---
 function loadTemplates() {
     const slider = document.getElementById('template-slider');
-    slider.innerHTML = ''; // Clear slider to prevent duplicates
-
     TEMPLATES.forEach((tpl, index) => {
         const div = document.createElement('div');
         div.className = 'template-card';
-        
-        // Handle the initially selected template
         if(index === 0) {
             div.classList.add('selected');
             currentTemplate = tpl;
         }
-        
         div.innerHTML = `<img src="${tpl.thumb}" alt="Template ${index+1}">`;
         
-        // Handle user clicking a new template
         div.onclick = () => {
             document.querySelectorAll('.template-card').forEach(el => el.classList.remove('selected'));
             div.classList.add('selected');
@@ -180,28 +91,7 @@ function loadTemplates() {
     });
 }
 
-// "SMART" USE DESIGN BUTTON (Scans safely on click)
-document.getElementById('btn-use-design').onclick = async () => {
-    const btn = document.getElementById('btn-use-design');
-
-    if (currentTemplate.shape === 'circle') {
-        const originalText = btn.innerHTML;
-        // Briefly change button text to show it is processing
-        btn.innerHTML = 'SCANNING... <i class="fa-solid fa-spinner fa-spin"></i>'; 
-
-        const coords = await autoDetectHole(currentTemplate.src);
-        
-        if (coords) {
-            currentTemplate.imgRect = coords; // Overwrite fallback with perfect coords
-            console.log("Perfect coordinates found and applied!", coords);
-        }
-
-        // Restore original text
-        btn.innerHTML = originalText;
-    }
-
-    showScreen('screen-upload');
-};
+document.getElementById('btn-use-design').onclick = () => showScreen('screen-upload');
 
 // --- UPLOAD & CROP ---
 uploadBox.onclick = () => imageInput.click();
@@ -217,7 +107,7 @@ imageInput.addEventListener('change', (e) => {
 
             if (cropper) cropper.destroy();
             
-            // Calculate Aspect Ratio dynamically based on template config (auto-detected or fallback)
+            // Calculate Aspect Ratio dynamically based on template config
             const rect = currentTemplate.imgRect;
             const ratio = rect.w / rect.h;
 
@@ -298,10 +188,6 @@ function renderPoster() {
 
         // 3. Draw Template PNG on top (Creating the frame effect)
         const tplImg = new Image();
-        
-        // CRITICAL FOR GITHUB PAGES CANVAS EXPORT
-        tplImg.crossOrigin = "Anonymous";
-        
         tplImg.src = currentTemplate.src;
         tplImg.onload = () => {
             // Draw using the dynamic width and height
@@ -372,5 +258,7 @@ document.getElementById('btn-share').onclick = async () => {
 
 // Optional: Background Removal API Hook (Placeholder)
 async function autoRemoveBackground(base64Image) {
+    // To implement Remove.bg, you would POST the base64Image to their API here.
+    // For now, this returns the original image.
     return base64Image; 
 }
