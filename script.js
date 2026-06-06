@@ -74,8 +74,8 @@ function showScreen(screenId) {
 async function autoDetectHole(imageSource) {
     return new Promise((resolve) => {
         const img = new Image();
-        tplImg.crossOrigin = "Anonymous";
-        img.src = imageSource;
+        img.crossOrigin = "Anonymous"; // Crucial for GitHub Pages!
+        
         img.onload = () => {
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -121,51 +121,66 @@ async function autoDetectHole(imageSource) {
                 resolve(null); 
             }
         };
-        img.onerror = () => resolve(null);
+
+        // THE ANTI-FREEZE GUARANTEE: If the browser blocks it, gracefully exit!
+        img.onerror = () => {
+            console.warn("Auto-detect blocked or image failed. Using fallback coordinates.");
+            resolve(null);
+        };
+
+        img.src = imageSource;
     });
 }
 
 // --- TEMPLATE SELECTION ---
-async function loadTemplates() {
+function loadTemplates() {
     const slider = document.getElementById('template-slider');
-    
-    for (let index = 0; index < TEMPLATES.length; index++) {
-        const tpl = TEMPLATES[index];
+    slider.innerHTML = ''; // Clear slider to prevent duplicates
+
+    TEMPLATES.forEach((tpl, index) => {
         const div = document.createElement('div');
         div.className = 'template-card';
-        div.innerHTML = `<img src="${tpl.thumb}" alt="Template ${index+1}">`;
         
         // Handle the initially selected template
         if(index === 0) {
             div.classList.add('selected');
             currentTemplate = tpl;
-            
-            // Auto-detect hole for the default template on load
-            if (currentTemplate.shape === 'circle') {
-                const coords = await autoDetectHole(currentTemplate.src);
-                if (coords) currentTemplate.imgRect = coords;
-            }
         }
         
+        div.innerHTML = `<img src="${tpl.thumb}" alt="Template ${index+1}">`;
+        
         // Handle user clicking a new template
-        div.onclick = async () => {
+        div.onclick = () => {
             document.querySelectorAll('.template-card').forEach(el => el.classList.remove('selected'));
             div.classList.add('selected');
             currentTemplate = tpl;
-            
-            // Auto-detect hole dynamically when clicked
-            if (currentTemplate.shape === 'circle') {
-                const coords = await autoDetectHole(currentTemplate.src);
-                if (coords) {
-                    currentTemplate.imgRect = coords;
-                }
-            }
         };
         slider.appendChild(div);
-    }
+    });
 }
 
-document.getElementById('btn-use-design').onclick = () => showScreen('screen-upload');
+// "SMART" USE DESIGN BUTTON (Scans on click)
+document.getElementById('btn-use-design').onclick = async () => {
+    const btn = document.getElementById('btn-use-design');
+
+    if (currentTemplate.shape === 'circle') {
+        const originalText = btn.innerHTML;
+        // Briefly change button text to show it is processing
+        btn.innerHTML = 'SCANNING... <i class="fa-solid fa-spinner fa-spin"></i>'; 
+
+        const coords = await autoDetectHole(currentTemplate.src);
+        
+        if (coords) {
+            currentTemplate.imgRect = coords; // Overwrite fallback with perfect coords
+            console.log("Perfect coordinates found and applied!", coords);
+        }
+
+        // Restore original text
+        btn.innerHTML = originalText;
+    }
+
+    showScreen('screen-upload');
+};
 
 // --- UPLOAD & CROP ---
 uploadBox.onclick = () => imageInput.click();
@@ -262,7 +277,10 @@ function renderPoster() {
 
         // 3. Draw Template PNG on top (Creating the frame effect)
         const tplImg = new Image();
+        
+        // CRITICAL FOR GITHUB PAGES CANVAS EXPORT
         tplImg.crossOrigin = "Anonymous";
+        
         tplImg.src = currentTemplate.src;
         tplImg.onload = () => {
             // Draw using the dynamic width and height
