@@ -71,10 +71,11 @@ function showScreen(screenId) {
 }
 
 // --- AUTO DETECT HOLE ALGORITHM (WITH EDGE BUFFER FIX) ---
+// --- AUTO DETECT HOLE ALGORITHM (DIAGNOSTIC MODE) ---
 async function autoDetectHole(imageSource) {
     return new Promise((resolve) => {
         const img = new Image();
-        img.crossOrigin = "Anonymous"; // Crucial for GitHub Pages!
+        img.crossOrigin = "Anonymous"; 
         
         img.onload = () => {
             const tempCanvas = document.createElement('canvas');
@@ -91,14 +92,14 @@ async function autoDetectHole(imageSource) {
             let maxX = 0, maxY = 0;
             let foundHole = false;
 
-            // THE FIX: 50-pixel edge buffer to ignore phantom transparent pixels on the borders
             const edgeBuffer = 50; 
 
             for (let y = edgeBuffer; y < tempCanvas.height - edgeBuffer; y++) {
                 for (let x = edgeBuffer; x < tempCanvas.width - edgeBuffer; x++) {
                     const alphaIndex = (y * tempCanvas.width + x) * 4 + 3;
-                    // If pixel is mostly transparent
-                    if (data[alphaIndex] < 10) { 
+                    
+                    // Increased tolerance from 10 to 50 to ignore semi-transparent shadows
+                    if (data[alphaIndex] < 50) { 
                         if (x < minX) minX = x;
                         if (x > maxX) maxX = x;
                         if (y < minY) minY = y;
@@ -109,31 +110,48 @@ async function autoDetectHole(imageSource) {
             }
 
             if (foundHole) {
-                // Ensure the bounding box is a perfect square for the circular cropper
                 const rawWidth = maxX - minX;
                 const rawHeight = maxY - minY;
                 const maxDim = Math.max(rawWidth, rawHeight);
-                
-                resolve({
-                    x: minX,
-                    y: minY,
-                    w: maxDim,
-                    h: maxDim
-                });
+                resolve({ x: minX, y: minY, w: maxDim, h: maxDim });
             } else {
                 resolve(null); 
             }
         };
 
-        // THE ANTI-FREEZE GUARANTEE: If the browser blocks it, gracefully exit!
         img.onerror = () => {
-            console.warn("Auto-detect blocked or image failed. Using fallback coordinates.");
+            alert("❌ SCANNER ERROR: Browser blocked the scan. (CORS issue)");
             resolve(null);
         };
 
-        img.src = imageSource;
+        // CACHE-BUSTER: Forces GitHub to fetch a fresh, unblocked image
+        img.src = imageSource + "?nocache=" + new Date().getTime();
     });
 }
+
+// "SMART" USE DESIGN BUTTON (With Alerts)
+document.getElementById('btn-use-design').onclick = async () => {
+    const btn = document.getElementById('btn-use-design');
+
+    if (currentTemplate.shape === 'circle') {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'SCANNING... <i class="fa-solid fa-spinner fa-spin"></i>'; 
+
+        const coords = await autoDetectHole(currentTemplate.src);
+        
+        if (coords) {
+            currentTemplate.imgRect = coords; 
+            // This popup will tell us exactly what is happening!
+            alert(`✅ SUCCESS!\nThe Scanner found the hole at:\n\nX: ${coords.x}\nY: ${coords.y}\nWidth: ${coords.w}`);
+        } else {
+            alert("⚠️ SCANNER FAILED: Falling back to manual coordinates.");
+        }
+
+        btn.innerHTML = originalText;
+    }
+
+    showScreen('screen-upload');
+};
 
 // --- TEMPLATE SELECTION ---
 function loadTemplates() {
