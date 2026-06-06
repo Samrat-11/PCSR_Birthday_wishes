@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Premium Poster Generator</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- SCREEN 1: TEMPLATE SELECTION -->
+        <section id="screen-templates" class="screen active">
+            <div class="header">
+                <i class="fa-solid fa-arrow-left"></i>
+                <h2>CHOOSE DESIGN</h2>
+                <div class="divider"><span>❖</span></div>
+            </div>
+            
+            <div class="template-slider" id="template-slider">
+                <!-- Templates will be injected here via JS -->
+            </div>
+            
+            <div class="pagination" id="template-pagination"></div>
+
+            <div class="bottom-action">
+                <button id="btn-use-design" class="gold-btn">USE THIS DESIGN <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: UPLOAD & CROP -->
+        <section id="screen-upload" class="screen hidden">
+            <div class="header">
+                <i class="fa-solid fa-arrow-left" onclick="showScreen('screen-templates')"></i>
+                <h2>UPLOAD PHOTO</h2>
+                <div class="divider"><span>❖</span></div>
+            </div>
+
+            <div class="content-padded">
+                <div class="upload-box" id="upload-box">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <p>Tap to upload a high-quality photo</p>
+                    <span class="file-limits">JPG, PNG (Max. 5MB)</span>
+                    <input type="file" id="image-input" accept="image/png, image/jpeg, image/jpg" hidden>
+                </div>
+
+                <div class="crop-area hidden" id="crop-area">
+                    <div class="img-container">
+                        <img id="image-to-crop" src="" alt="Picture">
+                    </div>
+                    <button id="btn-crop-apply" class="gold-btn mt-20">APPLY CROP</button>
+                </div>
+            </div>
+            
+            <div class="footer-branding">
+                <span>An initiative by</span>
+                <h4>THE PCSR TALKS</h4>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: USER DETAILS -->
+        <section id="screen-details" class="screen hidden">
+            <div class="header">
+                <i class="fa-solid fa-arrow-left" onclick="showScreen('screen-upload')"></i>
+                <h2>ENTER DETAILS</h2>
+                <div class="divider"><span>❖</span></div>
+            </div>
+
+            <div class="content-padded form-container">
+                <p class="form-subtitle">Personalize your poster</p>
+                <input type="text" id="input-name" class="styled-input" placeholder="Full Name (Required)" required>
+                <input type="text" id="input-designation" class="styled-input" placeholder="Designation (Optional)">
+                <input type="text" id="input-location" class="styled-input" placeholder="Location (Optional)">
+                
+                <button id="btn-generate" class="gold-btn mt-20">GENERATE POSTER <i class="fa-solid fa-wand-magic-sparkles"></i></button>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: LOADING -->
+        <section id="screen-loading" class="screen hidden flex-center">
+            <div class="loading-content">
+                <div class="glow-icon">
+                    <i class="fa-solid fa-cake-candles"></i>
+                </div>
+                <h3>Creating Your Poster...</h3>
+                <p>Just a moment please <i class="fa-solid fa-heart" style="color: #00aaff;"></i></p>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN 5: RESULT & SHARE -->
+        <section id="screen-result" class="screen hidden">
+            <div class="header">
+                <i class="fa-solid fa-arrow-left" onclick="location.reload()"></i>
+                <h2>YOUR POSTER IS READY! <i class="fa-solid fa-party-horn text-gold"></i></h2>
+                <div class="divider"><span>❖</span></div>
+            </div>
+
+            <div class="content-padded">
+                <div class="result-card">
+                    <canvas id="final-canvas"></canvas>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-download-img" class="gold-btn"><i class="fa-solid fa-download"></i> DOWNLOAD POSTER</button>
+                    <button id="btn-share" class="white-btn"><i class="fa-solid fa-share-nodes"></i> SHARE</button>
+                    <button id="btn-download-pdf" class="dark-btn"><i class="fa-solid fa-file-pdf"></i> SAVE AS PDF</button>
+                    <button class="outline-btn" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> CREATE ANOTHER</button>
+                </div>
+            </div>
+            
+            <div class="footer-branding">
+                <span>An initiative by</span>
+                <h4>THE PCSR TALKS</h4>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
